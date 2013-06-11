@@ -243,7 +243,9 @@ CREATE TABLE akte (
 	p_id INT,
 	betrag INT,
 	punkte_f INT,
-	f_enzug INT
+	f_enzug INT,
+	f_zeit INT,
+	f_ort VARCHAR(15)
 );
 
 DROP TABLE akte;
@@ -252,6 +254,8 @@ SELECT * FROM akte;
 -- --------------------------------------------------------------------------------------------------------------------
 
 -- Prozedur um alle Funktionen auszufuehren mit definierter Eingabe und die Ergebnis in der Akte Tabelle speichern
+
+SELECT * FROM akte;
 
 DELIMITER |
 CREATE PROCEDURE addAkte(IN autoKennzeichen VARCHAR(25), IN fahrZeit INT, IN fahrGeschwindigkeit INT, IN fahrStrasse INT)
@@ -262,7 +266,7 @@ CREATE PROCEDURE addAkte(IN autoKennzeichen VARCHAR(25), IN fahrZeit INT, IN fah
 	getStrafePunkte(computeDiff(fahrGeschwindigkeit, fahrZeit, fahrStrasse)),
 	getStrafeMonat(computeDiff(fahrGeschwindigkeit, fahrZeit, fahrStrasse)),
 	fahrZeit, getStrasseOrt(fahrStrasse);
-	SELECT * FROM akte WHERE p_id=getPersonenInfo(autoKennzeichen);
+	CALL summeAkte;
 	SELECT person_id AS Personen_ID,
 		   pname AS Personen_Name,
 		   padresse AS Adresse,
@@ -285,53 +289,35 @@ CREATE PROCEDURE addAkte(IN autoKennzeichen VARCHAR(25), IN fahrZeit INT, IN fah
 
 -- CALL addAkte('Autokennzeichen' VARCHAR, Fahrzeit INT, Fahrgeschwindigkeit INT, StrassenID INT)
 
-CALL addAkte('S-TV-0020', 20, 100, 6);
+CALL addAkte('S-TV-0020', 9, 50, 3);
+
+SELECT * FROM personen;
 
 DROP PROCEDURE addAkte;
--- --------------------------------------------------------------------------------------------------------------------
-
--- Prozedure um die Summe der Strafebetragshoehe, der Punkte in Flensburg und Fuehrerscheinenzugsdauer von eingegebene personen_id abzufragen
-
-DELIMITER |
-CREATE PROCEDURE summeAkte(IN personen_id INT) 
-	BEGIN
-	SELECT getPersonenName(personen_id), SUM(betrag) AS Summe_Betrag, SUM(punkte_f) AS Summe_Punkte, SUM(f_zeit) AS Summe_Fuehrerscheinenzug FROM akte WHERE p_id=personen_id;
-	END;
-| DELIMITER ;
-
-
--- CALL summeAkte(person_id INT)
-
-CALL summeAkte(1);
-
-DROP PROCEDURE summeAkte;
 -- --------------------------------------------------------------------------------------------------------------------
 
 -- Aufruf um die komplette Summe der Betraege fuer alle Personen in eine temporaere Tabelle
 -- zu speichern und die Ergebnisse auszugeben.
 
 DELIMITER |
-CREATE PROCEDURE summeAkte2()
+CREATE PROCEDURE summeAkte()
 	BEGIN
-	CREATE TABLE summe_temp (
-	id_ INT PRIMARY KEY AUTO_INCREMENT,
-	summebetrag INT,
-	person_name VARCHAR(10));
-	INSERT INTO summe_temp(summebetrag, person_name) SELECT SUM(betrag), getPersonenName(1) FROM akte WHERE p_id=1;
-	INSERT INTO summe_temp(summebetrag, person_name) SELECT SUM(betrag), getPersonenName(2) FROM akte WHERE p_id=2;
-	INSERT INTO summe_temp(summebetrag, person_name) SELECT SUM(betrag), getPersonenName(3) FROM akte WHERE p_id=3;
-	INSERT INTO summe_temp(summebetrag, person_name) SELECT SUM(betrag), getPersonenName(4) FROM akte WHERE p_id=4;
-	INSERT INTO summe_temp(summebetrag, person_name) SELECT SUM(betrag), getPersonenName(5) FROM akte WHERE p_id=5;
-	INSERT INTO summe_temp(summebetrag, person_name) SELECT SUM(betrag), getPersonenName(6) FROM akte WHERE p_id=6;
-	SELECT person_name AS Person, summebetrag AS Betragssumme FROM summe_temp;
+	INSERT INTO summe_temp(summebetrag, person_name, summe_punkte, summe_monat) SELECT SUM(betrag), getPersonenName(1), SUM(punkte_f), SUM(f_enzug) FROM akte WHERE p_id=1;
+	INSERT INTO summe_temp(summebetrag, person_name, summe_punkte, summe_monat) SELECT SUM(betrag), getPersonenName(2), SUM(punkte_f), SUM(f_enzug) FROM akte WHERE p_id=2;
+	INSERT INTO summe_temp(summebetrag, person_name, summe_punkte, summe_monat) SELECT SUM(betrag), getPersonenName(3), SUM(punkte_f), SUM(f_enzug) FROM akte WHERE p_id=3;
+	INSERT INTO summe_temp(summebetrag, person_name, summe_punkte, summe_monat) SELECT SUM(betrag), getPersonenName(4), SUM(punkte_f), SUM(f_enzug) FROM akte WHERE p_id=4;
+	INSERT INTO summe_temp(summebetrag, person_name, summe_punkte, summe_monat) SELECT SUM(betrag), getPersonenName(5), SUM(punkte_f), SUM(f_enzug) FROM akte WHERE p_id=5;
+	INSERT INTO summe_temp(summebetrag, person_name, summe_punkte, summe_monat) SELECT SUM(betrag), getPersonenName(6), SUM(punkte_f), SUM(f_enzug) FROM akte WHERE p_id=6;
+	SELECT person_name AS Person, summebetrag AS Betragssumme, summe_punkte AS Summe_Punkte_in_Flensburg, summe_monat AS Fuhrerscheinentzugsdauer FROM summe_temp;
 	DROP TABLE summe_temp;
 	CREATE TABLE summe_temp (
-	id_ INT PRIMARY KEY AUTO_INCREMENT,
 	summebetrag INT,
-	person_name VARCHAR(10));
+	person_name VARCHAR(20),
+	summe_punkte INT,
+	summe_monat INT);
 	END;
 | DELIMITER ;
 
-DROP PROCEDURE summeAkte2;
+DROP PROCEDURE summeAkte;
 
-CALL summeAkte2;
+CALL summeAkte;
